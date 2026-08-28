@@ -1,0 +1,12 @@
+[package]
+name = "zonary"
+version = "2.1.1"
+edition = "2024"
+description = "A minimalist binary-based esoteric programming language."
+license = "GPL-3.0-or-later"
+
+[dependencies]
+anyhow = "1.0"
+thiserror = "1.0"
+num-bigint = "0.4"
+num-traits = "0.2"

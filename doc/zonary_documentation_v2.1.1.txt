@@ -1,0 +1,324 @@
+Zonary Programming Language Documentation / Zonary 编程语言文档
+v2.1.1 - Kacefier
+
+---
+
+Copyright (C) 2026 Kacefier
+
+This document is part of the Zonary project.
+It is licensed under the GNU General Public License v3.0 (GPLv3).
+You should have received a copy of the GNU General Public License along with this document. If not, see https://www.gnu.org/licenses/.
+
+---
+
+Important Notice / 重要声明:
+
+Zonary is an esoteric programming language (Esolang) designed for fun and educational purposes. It is not a serious, production-grade programming language. Please do not use it for actual project development.
+
+Zonary 是一门整活语言（Esolang），专为娱乐和学习目的设计。它不是一个严肃的、工业级的编程语言，请勿用于实际项目开发。
+
+---
+
+English Version / 英文部分
+
+I. Overview
+
+Zonary is a minimalist binary-based esoteric programming language created by Kacefier.
+
+Features:
+- Registers are named by binary numbers of a configurable bit-width (default 8 bits); you need to remember what 00001010 means
+- Code is all 0s and 1s (plus preprocessor directives), spaces and newlines are automatically ignored
+- Only 8 instructions, each with a fixed length
+- No negative numbers by default, all values are unsigned integers within the program's bit-width range
+- Preprocessor directives /... are executed before the main program logic
+- Program bit-width is configurable, affecting registers, immediates, and labels
+
+II. Basic Specifications
+
+- The program bit-width determines the number of bits used for registers, immediate values, and labels. The default is 8 bits.
+- Registers are named by binary numbers of the program's bit-width. For example, with 8 bits, registers range from 00000000 to 11111111.
+- Zonary files use the .zonary extension and are executed by the interpreter.
+- Code consists of binary (0 and 1), spaces and newlines are automatically ignored.
+- Statement structure: opcode + parameters. All statements with the same opcode have a fixed length.
+- No negative numbers by default, all values are unsigned integers within the program's bit-width range.
+- Comment format: < comment content >, may span multiple lines.
+- Preprocessor directives use the / prefix and are extracted and executed before the main program.
+
+III. Registers and Memory Optimization
+
+- Registers are named by binary numbers of the program's bit-width (default 8 bits), acting like variables. The binary number is the register name.
+- There are 2^bit-width possible registers (e.g., 256 registers for 8-bit mode).
+- Memory Optimization:
+  - If a register has never been assigned a value, it does not occupy memory.
+  - If a register is assigned a value of 0, it is cleared from memory (i.e., treated as unassigned).
+  - If a program attempts to read from a register that does not exist in memory (never assigned or cleared to 0), the register is treated as having the value 0 (no error is raised).
+
+IV. Preprocessor Directives
+
+Preprocessor directives are indicated by the / prefix and are processed before the main program execution. They control the runtime environment. Their bit-length is fixed, and spaces or newlines are ignored. Preprocessor directives operate independently of the runtime environment and are not affected by it.
+
+Available directives:
+
+1. /00 parameter parameter - Replaces the default binary characters 0 and 1 with custom ASCII characters. The parameters are 8-bit binary values; the first replaces 0, the second replaces 1 (e.g., /00 00101110 00101101 uses . instead of 0 and - instead of 1). This affects all subsequent binary literals in the program. Note that the custom ASCII characters cannot be <, >, /, 0, or 1, nor can they be identical to each other. This directive has a fixed length of 18 bits.
+
+2. /01 parameter - Sets the program bit-width. The parameter is an 8-bit binary value representing the new bit-width (e.g., /01 11111111 sets the bit-width to 255). The bit-width determines the number of bits for registers, immediate values, and labels. The default is 8 (i.e., /01 00001000). This directive must appear before any register or label references that depend on the new width. This directive has a fixed length of 10 bits.
+
+Preprocessor directives /10 ... and /11 ... are currently reserved for future use and have no effect in this version.
+
+V. Instruction Set
+
+1. Opcode 000 / SET (Assign)
+
+Format: 000 register parameter mode
+Length: 4 + bit-width * 2 bits
+Description: Assigns a value to the specified register.
+register: Binary number of the program's bit-width, indicating the target register number.
+parameter: Binary number of the program's bit-width; meaning varies by mode.
+mode (1 bit):
+  0: Parameter is an immediate value; assign this value directly to the register.
+  1: Parameter is a register number; copy the value from that register to the target register.
+
+2. Opcode 001 / ADD (Addition)
+
+Format: 001 registerA parameter mode
+Length: 4 + bit-width * 2 bits
+Description: Adds registerA and another value, stores the result in registerA. The result is automatically truncated to the program's bit-width (modulo 2^bit-width).
+registerA: Binary number of the program's bit-width, indicating the target register number, also the first operand.
+parameter: Binary number of the program's bit-width; meaning varies by mode.
+mode (1 bit):
+  0: Parameter is an immediate value; add this value to registerA.
+  1: Parameter is a register number; add the value of that register to registerA.
+
+3. Opcode 010 / SUB (Subtraction)
+
+Format: 010 registerA parameter mode
+Length: 4 + bit-width * 2 bits
+Description: Subtracts another value from registerA, stores the result in registerA. The result is automatically truncated to the program's bit-width (modulo 2^bit-width).
+registerA: Binary number of the program's bit-width, indicating the target register number, also the minuend.
+parameter: Binary number of the program's bit-width; meaning varies by mode.
+mode (1 bit):
+  0: Parameter is an immediate value; subtract this value from registerA.
+  1: Parameter is a register number; subtract the value of that register from registerA.
+
+4. Opcode 011 / JMP (Jump)
+
+Format: 011 parameter mode1 mode2
+Length: 5 + bit-width bits
+Description: Unconditionally jumps to a specified label, or defines a new label.
+parameter: Binary number of the program's bit-width; meaning varies by mode2.
+mode1 (1 bit):
+  0: Jump to label. The program jumps to the instruction pointed to by the label. If the label does not exist, the jump is ignored and a warning is issued; execution continues with the next instruction.
+  1: Define label. Associates the next instruction with the label number. If the label number has already been defined, an error is reported and the program terminates.
+mode2 (1 bit):
+  0: Parameter is an immediate value, representing the label number (0 to 2^bit-width - 1).
+  1: Parameter is a register number; the label number is read from that register.
+
+5. Opcode 100 / IFZ (Conditional Jump)
+
+Format: 100 register parameter mode
+Length: 4 + bit-width * 2 bits
+Description: If the specified register value is 0, jumps to the specified label.
+register: Binary number of the program's bit-width, indicating the register number to be checked.
+parameter: Binary number of the program's bit-width; meaning varies by mode.
+mode (1 bit):
+  0: Parameter is an immediate value, representing the label number (0 to 2^bit-width - 1).
+  1: Parameter is a register number; the label number is read from that register.
+If the register value is not 0, execution continues to the next instruction without jumping. If the label does not exist, the jump is ignored and a warning is issued; execution continues with the next instruction.
+
+6. Opcode 101 / OUT (Output)
+
+Format: 101 parameter mode1 mode2
+Length: 6 + bit-width bits
+Description: Outputs a value. Does not automatically append a newline.
+parameter: Binary number of the program's bit-width; meaning varies by mode2.
+mode1 (2 bits):
+  00: Output as binary (using the program's bit-width, e.g., 01001000 for 8-bit)
+  01: Output as decimal
+  10: Output as hexadecimal (uppercase, fixed to (bit-width/4) digits)
+  11: Output as ASCII character. If the value is in the range 32~126, the corresponding character is displayed; otherwise, a \xXX escape sequence is shown.
+mode2 (1 bit):
+  0: Parameter is an immediate value; output this value directly.
+  1: Parameter is a register number; output the value stored in that register.
+
+7. Opcode 110 / INP (Input)
+
+Format: 110 register mode
+Length: 5 + bit-width bits
+Description: Reads one byte from standard input and stores it in the specified register. Leading whitespace (spaces, newlines, etc.) is skipped.
+register: Binary number of the program's bit-width, indicating the target register number.
+mode (2 bits):
+  00: Must input binary (matching the program's bit-width), parsed as a value 0 to 2^bit-width - 1.
+  01: Must input a decimal number (0 to 2^bit-width - 1).
+  10: Must input hexadecimal (case-insensitive, fixed to (bit-width/4) digits).
+  11: Must input one ASCII character; its ASCII code is stored.
+If the input is malformed or empty, the register is set to 0.
+
+8. Opcode 111 / SYS (System Call)
+
+Format: 111 parameter mode
+Length: 4 + bit-width bits
+Description: Performs a system function.
+parameter: Binary number of the program's bit-width (0 to 2^bit-width - 1); meaning varies by mode.
+mode (1 bit):
+  0: Terminates the program and outputs the parameter value as the return code. The return code is displayed as binary (using the program's bit-width).
+  1: Delays execution. The parameter specifies the number of milliseconds to delay (0 to 2^bit-width - 1 ms). After the delay, execution continues with the next instruction.
+If the program runs through all instructions without encountering SYS 0, it ends with a default return code of all zeros (0).
+
+VI. Why Is It Called Zonary?
+
+Zero + One + Binary = Zonary!
+
+---
+
+中文部分 / Chinese Version
+
+一、概述
+
+Zonary 是一个基于二进制的极简整活编程语言，由 Kacefier 制作。
+
+特点：
+- 寄存器名字是程序位宽所决定的二进制数字（默认 8 位），你需要记住 00001010 是哪个变量
+- 代码全是 0 和 1（外加预处理语句），空格和换行会被自动忽略
+- 只有 8 条指令，每条指令长度固定
+- 默认没有负数，所有值都在程序位宽所决定的无符号整数范围内
+- 预处理语句 /... 在主程序执行前运行
+- 程序位数可配置，影响寄存器、立即数和标记的位数
+
+二、基本规范
+
+- 程序位数决定了寄存器、立即数和标记所使用的位数，默认为 8 位。
+- 寄存器由程序位数所决定的二进制数构成，例如 8 位模式下，寄存器范围从 00000000 到 11111111。
+- Zonary 文件使用 .zonary 后缀名，由解释器运行。
+- 代码由二进制（0 和 1）构成，空格和换行会被自动忽略。
+- 语句结构：操作码 + 参数，相同操作码的语句长度固定。
+- 默认没有负数，所有值都是程序位宽所决定的无符号整数。
+- 注释格式：< 注释内容 >，可以跨行。
+- 预处理语句使用 / 前缀，会在主程序执行前被提取并执行。
+
+三、寄存器与内存优化
+
+- 寄存器由程序位数所决定的二进制数构成（默认 8 位），类似于变量。二进制数就是变量名。
+- 共有 2^程序位数 个寄存器（例如 8 位模式下有 256 个）。
+- 内存优化：
+  - 如果寄存器从未被赋值，则不会在内存中占用空间。
+  - 如果寄存器被赋值为 0，则会从内存中清除（即视为未赋值）。
+  - 如果程序尝试读取一个不存在于内存中的寄存器（从未赋值或被清零），该寄存器会被视为值为 0（不会报错）。
+
+四、预处理语句
+
+预处理语句使用 / 前缀，在主程序执行前被处理，用于控制运行时环境，其位数固定，空格或转行会被忽略，预处理语句独立于运行时环境之外，不受运行时环境影响。
+
+可用的预处理语句：
+
+1. /00 参数 参数 - 将默认的二进制字符 0 和 1 替换为自定义 ASCII 字符。参数为 8 位二进制，前者替换0，后者替换1（例如 /00 00101110 00101101 用 . 代替 0，用 - 代替 1）。影响之后程序中所有的二进制字面量，需注意，自定义 ASCII 字符不可以是 <，>，/，0，1 之中的字符，也不可以是两个相同字符。该预处理语句位宽固定为 18 位。
+
+2. /01 参数 - 设置程序位数。参数为 8 位二进制，表示新的程序位数（例如 /01 11111111 将程序位数设为 255）。程序位数决定了寄存器、立即数和标记的位数。默认值为 8（即 /01 00001000 ）。该语句必须出现在任何依赖于新位宽的寄存器或标记引用之前。该预处理语句位宽固定为 10 位。
+
+预处理语句 /10 ... 和 /11 ... 目前预留供后续版本使用，当前版本中无效。
+
+五、指令集
+
+1. 操作码 000 / SET（赋值）
+
+格式：000 寄存器 参数 模式
+长度：4 + 位数 × 2 位
+说明：将值赋给指定的寄存器。
+寄存器：程序位数的二进制数，表示目标寄存器编号。
+参数：程序位数的二进制数，根据模式不同含义不同。
+模式（1 位）：
+  0：参数是立即数，直接赋给寄存器。
+  1：参数是寄存器编号，将该寄存器的值复制到目标寄存器。
+
+2. 操作码 001 / ADD（加法）
+
+格式：001 寄存器A 参数 模式
+长度：4 + 位数 × 2 位
+说明：将寄存器A 与另一个值相加，结果存入寄存器A。结果自动截断为程序位数（即对 2^位数 取模）。
+寄存器A：程序位数的二进制数，表示目标寄存器编号，同时也是第一个操作数。
+参数：程序位数的二进制数，根据模式不同含义不同。
+模式（1 位）：
+  0：参数是立即数，直接与寄存器A 相加。
+  1：参数是寄存器编号，将该寄存器的值与寄存器A 相加。
+
+3. 操作码 010 / SUB（减法）
+
+格式：010 寄存器A 参数 模式
+长度：4 + 位数 × 2 位
+说明：将寄存器A 减去另一个值，结果存入寄存器A。结果自动截断为程序位数（即对 2^位数 取模）。
+寄存器A：程序位数的二进制数，表示目标寄存器编号，同时也是被减数。
+参数：程序位数的二进制数，根据模式不同含义不同。
+模式（1 位）：
+  0：参数是立即数，从寄存器A 中减去该值。
+  1：参数是寄存器编号，从寄存器A 中减去该寄存器的值。
+
+4. 操作码 011 / JMP（跳转）
+
+格式：011 参数 模式1 模式2
+长度：5 + 位数 位
+说明：无条件跳转到指定标记，或定义新标记。
+参数：程序位数的二进制数，根据模式2 不同含义不同。
+模式1（1 位）：
+  0：跳转到标记。程序跳转到该标记所指向的指令执行。如果标记不存在，跳转无效并产生警告，继续执行下一条指令。
+  1：定义标记。将当前指令的下一条指令与该标记号关联。如果该标记号已被定义，报错并终止程序。
+模式2（1 位）：
+  0：参数是立即数，表示标记号（0 到 2^位数 - 1）。
+  1：参数是寄存器编号（0 到 2^位数 - 1），标记号从该寄存器读取。
+
+5. 操作码 100 / IFZ（条件跳转）
+
+格式：100 寄存器 参数 模式
+长度：4 + 位数 × 2 位
+说明：如果指定的寄存器值为 0，则跳转到指定标记。
+寄存器：程序位数的二进制数，表示要被检查的寄存器编号。
+参数：程序位数的二进制数，根据模式不同含义不同。
+模式（1 位）：
+  0：参数是立即数，表示标记号（0 到 2^位数 - 1）。
+  1：参数是寄存器编号（0 到 2^位数 - 1），标记号从该寄存器读取。
+若寄存器值不为 0，则顺序执行下一条指令，不产生跳转。若标记不存在，跳转无效并产生警告，继续执行下一条指令。
+
+6. 操作码 101 / OUT（输出）
+
+格式：101 参数 模式1 模式2
+长度：6 + 位数 位
+说明：输出一个值。输出后不自动换行。
+参数：程序位数的二进制数，根据模式2 不同含义不同。
+模式1（2 位）：
+  00：以二进制形式输出（使用程序位数，如 8 位时输出 01001000）
+  01：以十进制形式输出
+  10：以十六进制形式输出（大写，固定为 位数/4 位）
+  11：以 ASCII 字符形式输出。若值在 32~126 范围内则显示对应字符，否则显示 \xXX 格式的转义序列。
+模式2（1 位）：
+  0：参数是立即数，直接输出该值。
+  1：参数是寄存器编号，输出该寄存器中存储的值。
+
+7. 操作码 110 / INP（输入）
+
+格式：110 寄存器 模式
+长度：5 + 位数 位
+说明：从标准输入读取一个字节，存入指定的寄存器。读取时会跳过前导空白字符（空格、换行等）。
+寄存器：程序位数的二进制数，表示目标寄存器编号。
+模式（2 位）：
+  00：必须输入二进制数（匹配程序位数），解析为 0 到 2^位数 - 1 的数值。
+  01：必须输入十进制数字（0 到 2^位数 - 1）。
+  10：必须输入十六进制（不区分大小写，固定为 位数/4 位）。
+  11：必须输入一个 ASCII 字符，取其 ASCII 码值。
+若输入格式错误或为空，寄存器将被设置为 0。
+
+8. 操作码 111 / SYS（系统调用）
+
+格式：111 参数 模式
+长度：4 + 位数 位
+说明：执行系统功能。
+参数：程序位数的二进制数（0 到 2^位数 - 1），根据模式不同含义不同。
+模式（1 位）：
+  0：结束程序，并将参数值作为返回码输出。返回码以二进制形式显示（使用程序位数）。
+  1：延迟执行。参数表示延迟的毫秒数（0 到 2^位数 - 1 毫秒）。延迟结束后继续执行下一条指令。
+程序若正常执行完所有指令（未遇到 SYS 0），默认以返回码 0（全零）结束。
+
+六、为什么叫 Zonary？
+
+Zero + One + Binary = Zonary！
+
+---
+
+v2.1.1 - Kacefier
