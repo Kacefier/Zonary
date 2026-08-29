@@ -1,4 +1,4 @@
-Zonary Programming Language Documentation / Zonary 编程语言文档
+Zonary Programming Language Document / Zonary 编程语言文档
 v2.1.1 - Kacefier
 
 ---
