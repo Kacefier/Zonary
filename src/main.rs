@@ -26,6 +26,8 @@ use std::io::{self, Write};
 use anyhow::Result;
 use interpreter::Interpreter;
 
+const VERSION: &str = "2.1.1";
+
 fn main() -> Result<()> {
     let args: Vec<String> = env::args().collect();
 
@@ -40,8 +42,10 @@ fn main() -> Result<()> {
             Ok(())
         }
         "-v" | "--version" => {
-            println!("Zonary Interpreter v2.1.1 - Made by Kacefier");
-            println!("GitHub: github.com/Kacefier/Zonary\nEmail: kacefier@zohomail.com");
+            println!("Zonary Interpreter v{} - Made by Kacefier", VERSION);
+            println!("GitHub: github.com/Kacefier/Zonary");
+            println!("Email: kacefier@zohomail.com");
+            println!("This is free software, licensed under GPLv3+, See --help for details.");
             Ok(())
         }
         "-r" | "--run" => {
@@ -57,8 +61,10 @@ fn main() -> Result<()> {
 }
 
 fn print_help() {
-    println!("Zonary Interpreter v2.1.1 - Made by Kacefier");
-    println!("GitHub: github.com/Kacefier/Zonary\nEmail: kacefier@zohomail.com");
+    println!("Zonary Interpreter v{} - Made by Kacefier", VERSION);
+    println!("GitHub: github.com/Kacefier/Zonary");
+    println!("Email: kacefier@zohomail.com");
+    println!();
     println!("Usage: zonary [OPTION]");
     println!("Options:");
     println!("  -h, --help            Show this help message and exit");
@@ -70,6 +76,16 @@ fn print_help() {
     println!("  zonary example.zonary      Run the program");
     println!("  zonary -r example.zonary   Equivalent to above");
     println!("  zonary --repl              Start REPL");
+    println!();
+    println!("Copyright and license:");
+    println!("  Copyright (C) 2026 Kacefier");
+    println!("  Zonary is free software licensed under the GNU General Public");
+    println!("  License, version 3 or (at your option) any later version.");
+    println!("  This program is distributed in the hope that it will be useful,");
+    println!("  but WITHOUT ANY WARRANTY; without even the implied warranty of");
+    println!("  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.");
+    println!();
+    println!("  See <https://www.gnu.org/licenses/> for the full license text.");
 }
 
 fn run_file(filename: &str) -> Result<()> {
@@ -92,7 +108,8 @@ fn run_file(filename: &str) -> Result<()> {
 }
 
 fn run_repl() -> Result<()> {
-    println!("Zonary REPL v2.1.1 - Made by Kacefier");
+    println!("Zonary REPL v{} - Made by Kacefier", VERSION);
+    println!("This is free software, licensed under GPLv3+, See --help for details.");
     println!("Enter code line by line. Empty line executes.");
     println!("Type 'exit' to quit.");
     println!();
